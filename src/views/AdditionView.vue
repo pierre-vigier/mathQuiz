@@ -2,21 +2,34 @@
   <main>
     <div id="container">
       <div class="topbar">
+        <div id="time-container">
+          <div
+            id="time-gauge"
+            :style="{
+              width: time / maxTime + '%',
+              'background-color': `rgb(${
+                (255 / (maxTime * 100)) * (maxTime * 100 - time)
+              } ,${(255 / (maxTime * 100)) * 100 * time}, 0)`,
+            }"
+          ></div>
+        </div>
         <div id="lives">
           <span v-for="n in lives" :key="n"> ❤️</span>
         </div>
-        <div id="score">Score: {{ score }}</div>
+        <div id="score">
+          High Score: {{ highScore }}<br />Score: {{ score }}
+        </div>
       </div>
       <div v-if="game">
         <div id="operation">{{ one }} + {{ two }}</div>
         <div id="responses">
           <div
-            class="response"
+            :class="{ response: true, correct: r.correct, pressed: r.pressed }"
             v-for="r in responses"
             :key="r"
             @click="check(r)"
           >
-            {{ r }}
+            {{ r.value }}
           </div>
         </div>
       </div>
@@ -30,30 +43,70 @@
   </main>
 </template>
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
+onMounted(() => {
+  let hs = localStorage.getItem("highScore");
+  if (hs) {
+    highScore.value = parseInt(hs);
+  }
+});
 // variable
+const highScore = ref(0);
 const displayMessage = ref(false);
 const one = ref(1);
 const two = ref(2);
-const responses = ref([1, 2]);
+const responses = ref([{ value: 1 }, { value: 2 }]);
 const lives = ref(3);
 const score = ref(0);
 const message = ref("You lost");
 const nextText = ref("Continue");
 const game = ref(false);
+const maxTime = 7;
+const time = ref(maxTime * 100);
+let timer = null;
+function countDown() {
+  if (time.value > 0) {
+    timer = setTimeout(() => {
+      time.value -= 1;
+      countDown();
+    }, 10);
+  } else {
+    reduceLife();
+    responses.value.forEach((element) => {
+      element.pressed = true;
+    });
+    setTimeout(() => {
+      reset();
+    }, 2500);
+  }
+}
 function getRandomInteger(max) {
   return Math.floor(Math.random() * max) + 1;
 }
+function stopTimer() {
+  clearTimeout(timer);
+}
 function reset() {
+  time.value = maxTime * 100;
+  clearTimeout(timer);
+  countDown();
   one.value = getRandomInteger(10);
   two.value = getRandomInteger(10);
-  const response = one.value + two.value;
+  const response = {
+    value: one.value + two.value,
+    pressed: false,
+    correct: true,
+  };
   //takes 4 additionnal values within +/- 3
   let allr = [response];
   let around = [-3, -2, -1, 1, 2, 3];
   while (allr.length < 5) {
     let index = getRandomInteger(around.length) - 1;
-    allr.push(response + around[index]);
+    allr.push({
+      value: response.value + around[index],
+      pressed: false,
+      correct: false,
+    });
     around.splice(index, 1);
   }
   //shuffle resposnes
@@ -72,17 +125,43 @@ function start() {
 function next() {
   displayMessage.value = false;
 }
-function check(val) {
-  if (val == one.value + two.value) {
-    score.value++;
-    reset();
+function check(r) {
+  if (r.pressed) return;
+  r.pressed = true;
+  if (r.correct) {
+    stopTimer();
+    if (time.value / 100 > maxTime / 2) {
+      score.value += 2;
+    } else {
+      score.value += 1;
+    }
+    if (score.value > highScore.value) {
+      highScore.value = score.value;
+      localStorage.setItem("highScore", highScore.value);
+    }
+    // switched all answers to pressed to show the winning one only
+    responses.value.forEach((element) => {
+      element.pressed = true;
+    });
+    setTimeout(() => {
+      reset();
+    }, 2500);
   } else {
-    lives.value--;
-    if (lives.value === 0) {
+    reduceLife();
+  }
+}
+function reduceLife() {
+  lives.value--;
+  if (lives.value === 0) {
+    stopTimer();
+    responses.value.forEach((element) => {
+      element.pressed = true;
+    });
+    setTimeout(() => {
       displayMessage.value = true;
       message.value = `You lost<br>score : ${score.value}`;
       game.value = false;
-    }
+    }, 2500);
   }
 }
 </script>
@@ -111,14 +190,14 @@ main {
   text-decoration: none;
 }
 #score {
-  padding: 50px;
+  padding-left: 50px;
   font-size: 50px;
   text-align: left;
 }
 #lives {
   float: right;
   clear: none;
-  padding: 50px;
+  padding-right: 50px;
   font-size: 50px;
 }
 .topbar {
@@ -143,6 +222,14 @@ main {
   padding: 5px;
   margin: 10px;
   min-width: 200px;
+}
+.response.pressed {
+  opacity: 10%;
+  background: #630000;
+}
+.response.pressed.correct {
+  background: #006100;
+  opacity: 100%;
 }
 #overlay {
   text-align: center;
@@ -177,5 +264,15 @@ main {
   font-size: 30px;
   color: rgb(79, 167, 94);
   cursor: pointer;
+}
+#time-container {
+  width: 100%;
+  height: 40px;
+}
+#time-gauge {
+  height: 100%;
+  position: absolute;
+  top: 0;
+  z-index: -1;
 }
 </style>

@@ -33,3 +33,5 @@ npm run build
 ```sh
 npm run lint
 ```
+
+Some test of Vue3 composition API, code is "messy", jsut for experimentation
