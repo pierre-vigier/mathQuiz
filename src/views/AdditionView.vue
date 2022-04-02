@@ -6,10 +6,10 @@
           <div
             id="time-gauge"
             :style="{
-              width: time / maxTime + '%',
-              'background-color': `rgb(${
-                (255 / (maxTime * 100)) * (maxTime * 100 - time)
-              } ,${(255 / (maxTime * 100)) * 100 * time}, 0)`,
+              width: 100 * (time / maxTime) + '%',
+              'background-color': `rgb(${55 + 200 - 200 * (time / maxTime)}, ${
+                200 * (time / maxTime)
+              }, 0)`,
             }"
           ></div>
         </div>
@@ -56,13 +56,13 @@ const displayMessage = ref(false);
 const one = ref(1);
 const two = ref(2);
 const responses = ref([{ value: 1 }, { value: 2 }]);
-const lives = ref(3);
+const lives = ref(5);
 const score = ref(0);
 const message = ref("You lost");
 const nextText = ref("Continue");
 const game = ref(false);
-const maxTime = 7;
-const time = ref(maxTime * 100);
+const maxTime = 700;
+const time = ref(maxTime);
 let timer = null;
 function countDown() {
   if (time.value > 0) {
@@ -87,7 +87,7 @@ function stopTimer() {
   clearTimeout(timer);
 }
 function reset() {
-  time.value = maxTime * 100;
+  time.value = maxTime;
   clearTimeout(timer);
   countDown();
   one.value = getRandomInteger(10);
@@ -130,7 +130,7 @@ function check(r) {
   r.pressed = true;
   if (r.correct) {
     stopTimer();
-    if (time.value / 100 > maxTime / 2) {
+    if (time.value > maxTime / 2) {
       score.value += 2;
     } else {
       score.value += 1;
@@ -210,7 +210,7 @@ main {
 }
 #responses {
   padding-top: 50px;
-  font-size: 100px;
+  font-size: 4rem;
   display: flex;
   flex-wrap: wrap;
   justify-content: space-evenly;
@@ -220,8 +220,7 @@ main {
   border: solid 1px white;
   border-radius: 20%;
   padding: 5px;
-  margin: 10px;
-  min-width: 200px;
+  min-width: 15%;
 }
 .response.pressed {
   opacity: 10%;
